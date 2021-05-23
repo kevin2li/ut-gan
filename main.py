@@ -1,18 +1,13 @@
 # https://github.com/EmilienDupont/wgan-gp/blob/master/main.py
 import torch
 import torch.optim as optim
-from dataloaders import get_mnist_dataloaders, get_lsun_dataloader
+from src.datasetmgr import get_dataloader
 from src.models import UNet, ZhuNet
 from .trainer import Trainer
 
-data_loader, _ = get_mnist_dataloaders(batch_size=64)
-img_size = (32, 32, 1)
-
+data_loader = get_dataloader(data_dirs=[''], batch_size=64)
 generator = UNet(3, 2)
 discriminator = ZhuNet()
-
-print(generator)
-print(discriminator)
 
 # Initialize optimizers
 lr = 1e-4
