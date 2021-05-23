@@ -1,2 +1,2 @@
-from . import unet
-from .unet import *
+from .unet import UNet
+from .zhunet import ZhuNet
