@@ -6,7 +6,7 @@ import torch.nn as nn
 from torchvision.utils import make_grid
 from torch.autograd import Variable
 from torch.autograd import grad as torch_grad
-
+from src.utils import DoubleTanh
 
 class Trainer():
     def __init__(self, generator, discriminator, gen_optimizer, dis_optimizer,
@@ -31,7 +31,7 @@ class Trainer():
         """ """
         # Get generated data
         batch_size = data.size()[0]
-        generated_data = self.sample_generator(batch_size)
+        generated_data = self.sample_generator(data)
 
         # Calculate probabilities on real and generated data
         data = Variable(data)
@@ -146,14 +146,16 @@ class Trainer():
             imageio.mimsave('./training_{}_epochs.gif'.format(epochs),
                             training_progress_images)
 
-    def sample_generator(self, num_samples):
-        latent_samples = Variable(self.G.sample_latent(num_samples))
-        if self.use_cuda:
-            latent_samples = latent_samples.cuda()
-        generated_data = self.G(latent_samples)
-        return generated_data
+    def sample_generator(self, covers):
+        B, C, H, W = covers.shape
+        P = self.G(covers)
+        R = torch.tensor(np.random.uniform(0, 1, (B, C, H, W)))
+        m = DoubleTanh(0.5)
+        modification_maps = m(P, R)
+        stegos = covers + modification_maps
+        return stegos
 
-    def sample(self, num_samples):
-        generated_data = self.sample_generator(num_samples)
+    def sample(self, covers):
+        generated_data = self.sample_generator(covers)
         # Remove color channel
         return generated_data.data.cpu().numpy()[:, 0, :, :]

@@ -25,7 +25,7 @@ class ToTensor():
         return torch.from_numpy(data)
 
 train_transform = T.Compose([
-    AugData(),
+    # AugData(),
     ToTensor(),
 ])
 
