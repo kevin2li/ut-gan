@@ -25,7 +25,7 @@ class ImageDataset(Dataset):
             data = self.transforms(cover_img)
 
         label = torch.tensor(0, dtype=torch.int64)
-
+        data = data.unsqueeze(0)
         return data, label
 
     def __len__(self):

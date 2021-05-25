@@ -7,6 +7,9 @@ from torchvision.utils import make_grid
 from torch.autograd import Variable
 from torch.autograd import grad as torch_grad
 from src.utils import DoubleTanh
+from tqdm import tqdm
+from src.config import getConfig
+args = getConfig('/home/kevin2li/ut-gan/src/config/default.yml')
 
 class Trainer():
     def __init__(self, generator, discriminator, gen_optimizer, dis_optimizer,
@@ -105,46 +108,30 @@ class Trainer():
         # Return gradient penalty
         return self.gp_weight * ((gradients_norm - 1) ** 2).mean()
 
-    def _train_epoch(self, data_loader):
-        for i, data in enumerate(data_loader):
+    def _train_epoch(self, epoch, data_loader):
+        progressbar = tqdm(enumerate(data_loader), total=len(data_loader), desc=f"Epoch: {epoch+1}/{args['max_epoch']}")
+        for i, (x, y) in progressbar:
             self.num_steps += 1
-            self._critic_train_iteration(data[0])
+            self._critic_train_iteration(x)
             # Only update generator every |critic_iterations| iterations
             if self.num_steps % self.critic_iterations == 0:
-                self._generator_train_iteration(data[0])
+                self._generator_train_iteration(x)
 
             if i % self.print_every == 0:
-                print("Iteration {}".format(i + 1))
-                print("D: {}".format(self.losses['D'][-1]))
-                print("GP: {}".format(self.losses['GP'][-1]))
-                print("Gradient norm: {}".format(self.losses['gradient_norm'][-1]))
+                progressbar_dict = {
+                    'iter': i+1,
+                    'D': self.losses['D'][-1],
+                    'GP': self.losses['GP'][-1],
+                    'Gradient norm': self.losses['gradient_norm'][-1]
+                }
                 if self.num_steps > self.critic_iterations:
-                    print("G: {}".format(self.losses['G'][-1]))
+                    progressbar_dict['G'] = self.losses['G'][-1]
+                progressbar.set_postfix(progressbar_dict)
 
-    def train(self, data_loader, epochs, save_training_gif=True):
-        if save_training_gif:
-            # Fix latents to see how image generation improves during training
-            fixed_latents = Variable(self.G.sample_latent(64))
-            if self.use_cuda:
-                fixed_latents = fixed_latents.cuda()
-            training_progress_images = []
-
+    def train(self, data_loader, epochs):
         for epoch in range(epochs):
-            print("\nEpoch {}".format(epoch + 1))
-            self._train_epoch(data_loader)
+            self._train_epoch(epoch, data_loader)
 
-            if save_training_gif:
-                # Generate batch of images and convert to grid
-                img_grid = make_grid(self.G(fixed_latents).cpu().data)
-                # Convert to numpy and transpose axes to fit imageio convention
-                # i.e. (width, height, channels)
-                img_grid = np.transpose(img_grid.numpy(), (1, 2, 0))
-                # Add image grid to training progress
-                training_progress_images.append(img_grid)
-
-        if save_training_gif:
-            imageio.mimsave('./training_{}_epochs.gif'.format(epochs),
-                            training_progress_images)
 
     def sample_generator(self, covers):
         B, C, H, W = covers.shape

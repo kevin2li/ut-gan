@@ -18,7 +18,8 @@ D_optimizer = optim.Adam(discriminator.parameters(), lr=args['lr'], betas=args['
 
 # Train model
 trainer = Trainer(generator, discriminator, G_optimizer, D_optimizer, use_cuda=torch.cuda.is_available())
-trainer.train(data_loader, args['max_epoch'], save_training_gif=False)
+trainer.train(data_loader, args['max_epoch'])
+# %%
 
 # Save models
 # name = 'mnist_model'
